@@ -1,0 +1,6 @@
+apiVersion: v1
+kind: ConfigMap					    # 组件的类型是 ConfigMap
+metadata:
+  name: mongo-config				# 为这个 ConfigMap 命名
+data:
+  mongo-url: mongo-service	# ConfigMap 中包含的数据，以 K:V 的形式定义，本例中只需要包含 mongo db 的 url
