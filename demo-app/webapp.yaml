@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment              # 定义组件类型为 Deployment
+metadata:
+  name: webapp-deployment     # 为 Deployment 取名
+  labels:
+    app: webapp               # Deployment 组件的标签，可省略
+spec:
+  replicas: 4                 # Pod 的实例个数，webapp 是一个无状态的服务
+  selector:
+    matchLabels:              # 匹配 Pod 标签，所有 label 了 app: webapp
+      app: webapp             # 的 pod，都属于这个 Deployment
+  template:
+    metadata:                 # Pod 的元数据
+      labels:                 # 给 Pod 打上标签，以便 Deployment 组件进行匹配
+        app: webapp
+    spec:                     # Pod 的特殊参数
+      containers:             # 定义 Pod 中运行的 container
+      - name: webapp          # container 名字
+        image: nanajanashia/k8s-demo-app:v1.0
+        ports:                # container 内部使用的端口
+        - containerPort: 3000 # webapp app 使用 3000 端口
+        env:							          # 为 container 指定环境变量
+        - name: USER_NAME           # 定义 webapp 使用的 mongo 用户名环境变量
+          valueFrom:
+            secretKeyRef:           # 用户名需要从 secret 组件获取
+              name: mongo-secret    # secret 组件的名称
+              key: mongo-user       # secret 组建中对应的 key
+        - name: USER_PWD            # 定义 webapp 使用的 mongo 管理密码环境变量
+          valueFrom:
+            secretKeyRef:           # 密码需要从 secret 组件获取
+              name: mongo-secret    # secret 组件的名称
+              key: mongo-password   # secret 组建中对应的 key
+        - name: DB_URL              # 定义 webapp 使用的数据库连接串环境变量
+          valueFrom:
+            configMapKeyRef:        # DB URL 需要从 config map 组件获取
+              name: mongo-config    # secret 组件的名称
+              key: mongo-url        # config map 组件中对应的 key
+---
+# 用 --- 隔开，配置文件的第二部分，定义一个与上述 Deployment 相关的 Service
+apiVersion: v1
+kind: Service           # 类型为 Service
+metadata:
+  name: webapp-service  # service 的名称
+spec:
+  type: NodePort		   # 指定 NodePort 类型，成为外部可访问的 External Service
+  selector:
+    app: webapp
+  ports:
+    - protocol: TCP
+      port: 3000       # service 对外服务的端口
+      targetPort: 3000 # 请求转发的目标端口为 webapp 的 3000 端口
+      nodePort: 30100  # nodePort 代表通过 node 上的端口可访问到此服务

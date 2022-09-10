@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment					    # 定义组件类型为 Deployment
+metadata:
+  name: mongo-deployment			# 为 Deployment 取名
+  labels:
+    app: mongo					      # Deployment 组件的标签，可省略
+spec:
+  replicas: 1					      	# Pod 的实例个数，由于 mongo db 是一个有状态的服务，因此只运行一个实例
+  selector:
+    matchLabels:			    		# 匹配 Pod 标签，所有 label 了 app: mongo
+      app: mongo				    	# 的 pod，都属于这个 Deployment
+  template:						        # 定义 Deployment 所管理的 Pod 相当于在 Deployment 中内嵌了一个 Pod 配置文件
+    metadata:			  		  	  # Pod 的元数据
+      labels:				     	  	# 给 Pod 打上标签，以便 Deployment 组件进行匹配
+        app: mongo		    		# app 作为 key 是一种约定俗成，可以自定义，mongo 是 value，也可以自定义
+    spec:						      	  # Pod 的特殊参数
+      containers:				  	  # 定义 Pod 中运行的 container
+      - name: mongodb				  # container 名字
+        image: mongo:5.0		  # container 所用的 image，在 dockerhub 上
+        ports:					      # container 内部使用的端口
+        - containerPort: 27017	# mongo app 使用 27017 端口
+        env:							                  # 为 container 指定环境变量
+        - name: MONGO_INITDB_ROOT_USERNAME  # 定义 mongo 用户名环境变量
+          valueFrom:
+            secretKeyRef:                   # 用户名需要从 secret 组件获取
+              name: mongo-secret            # secret 组件的名称
+              key: mongo-user               # secret 组建中对应的 key
+
+        - name: MONGO_INITDB_ROOT_PASSWORD  # 定义 mongo 管理密码环境变量
+          valueFrom:
+            secretKeyRef:                   # 密码需要从 secret 组件获取
+              name: mongo-secret            # secret 组件的名称
+              key: mongo-password           # secret 组建中对应的 key
+---
+# 用 --- 隔开，配置文件的第二部分，定义一个与上述 Deployment 相关的 Service
+apiVersion: v1
+kind: Service			    	# 类型为 Service
+metadata:
+  name: mongo-service		# service 的名称
+spec:
+  selector:
+    app: mongo			    # 选择 service 的 endpoints pods， 用户请求会被转发到以 app: mongo 为标签的 pods
+  ports:
+    - protocol: TCP
+      port: 27017			  # service 对外服务的端口
+      targetPort: 27017	# 请求转发的目标端口为 mongo db 的 27017 端口
