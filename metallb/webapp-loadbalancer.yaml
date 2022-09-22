@@ -1,0 +1,15 @@
+# webapp-loadbalancer.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-loadbalancer
+  annotations:
+    metallb.universe.tf/address-pool: ip-pool-10-1-0-x
+spec:
+  ports:
+  - port: 3000
+    targetPort: 3000
+  selector:
+    app: webapp
+  type: LoadBalancer
